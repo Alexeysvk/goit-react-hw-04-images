@@ -1,116 +1,87 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import Searchbar from './Searchbar';
 import ImageGallery from './ImageGallery';
 import Button from './Button';
 import Loader from './Loader';
-import Error from './Error';
 import Modal from './Modal';
-import { ToastContainer } from 'react-toastify';
+import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import api from 'services/api';
 
 
-const status = {
-  IDLE: 'idle',
-  PENDING: 'pending',
-  REJECTED: 'rejected',
-  RESOLVED: 'resolved',
+export default function App() {
+  const [searchQuery, setSearchQuery]= useState('');
+  const [page, setPage]= useState(1);
+  const [images,setImages]= useState([]);
+  const [showModal, setShowModal]= useState(false);
+  const [bigImage, setBigImage]= useState('');
+  const [visibleButton, setVisibleButton]= useState(false);
+  const [loading, setLoading]= useState(false);
+
+
+useEffect(()=>{
+  if(!searchQuery){
+    return;
+  }
+  setLoading(true);
+  setVisibleButton(false)
+  const pageSise= 12
+  api.fetchGallery(searchQuery, page)
+  .then(newImages=>{
+    if(newImages.total===0){
+      setVisibleButton(false);
+      toast.warn('Nothing was found on your request')
+    }
+    if(newImages){
+      setImages([...images, ...newImages.hits])
+    }
+    if(page>1){
+      window.scrollTo({
+        top:document.body.clientHeight,
+        behavior: 'smooth',
+      })
+    }
+
+    if(newImages.total - page*pageSise < pageSise){
+      setVisibleButton(false);
+    } else{
+      setVisibleButton(true);
+    }
+  })
+  .catch(error => toast.error('Ooops, something went wrong'))
+  .finally(()=> setLoading(false));
+}, [searchQuery, page])
+
+const toggleModal= () =>{
+  setShowModal(!showModal);
+}
+const getBigImageModal= data =>{
+  toggleModal();
+  setBigImage(data)
 };
 
+const handelFormSubmit= data =>{
+  setSearchQuery(data)
+  setImages([])
+  setPage(1)
+  setVisibleButton(true)
+}
 
-export default class App extends Component{
-  state = {
-    searchQuery: '',
-    page: 1,
-    images: [],
-    status: status.IDLE,
-    error: null,
-    showModal: false,
-    bigImage: '',
-    totalHits: 1,
-  };
+const handleLoadMore= ()=>{
+  setPage(page+1)
+}
 
-  componentDidUpdate(prevProps, prevState) {
-    const prevImages = prevState.searchQuery;
-    const nextImages = this.state.searchQuery;
-
-    const prevPage = prevState.page;
-    const nextPage = this.state.page;
-
-    if (prevImages !== nextImages) {
-      this.setState({
-        status: status.PENDING, page: 1, images: [],
-      });
-      this.fetchGallery(nextImages, nextPage);
-    }
-
-    // Загружаем еще 
-    if (prevPage !== nextPage && nextPage !== 1) {
-      this.fetchGallery(nextImages, nextPage);
-      this.setState({status: "pending"});
-    }
-  }
-  
-  fetchGallery(nextImages, nextPage) {
-    api.fetchGallery(nextImages, nextPage)
-      .then(data => {
-        this.setState(prevState => {
-          return {
-            prevState, status: status.RESOLVED,
-            images: [...prevState.images, ...data.hits],
-            searchQuery: nextImages,
-            totalHits: data.totalHits,
-          };
-        });
-      })
-      .catch(error => this.setState({ error, status: status.REJECTED }));
-  }
-
-  toggleModal = largeImageURL => {
-    this.setState(({ showModal, bigImage }) => ({
-      showModal: !showModal,
-      bigImage: largeImageURL,
-    }));
-  };
-
-  onLoadMore = () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-    }));
-  };
-
-  handelFormSubmit= searchQuery=>{
-   this.setState({searchQuery, page: 1})
-  }
-
-
-
-  render(){
-    const { images, bigImage, status, error } = this.state;
 
   return(
       <>
-        <Searchbar onSubmit={this.handelFormSubmit} />
-        <ToastContainer autoClose={3000} theme={'colored'} />
-        {images.length !== 0 && 
-        <ImageGallery images={images} toggleModal={this.toggleModal} />}
-
-        {status === 'pending' && <Loader/>}
-
-        {status === 'rejeted' && 
-        (<>
-          <Error message={error.message} />
-          <ToastContainer autoClose={3000} theme={'colored'} />
-        </>)
-        }
-        {status === 'resolved' && (
-        <div>
-             {this.state.showModal && (<Modal image={bigImage} onClickModal={this.toggleModal} />)}
-             {this.state.images.length !==this.state.totalHits && (<Button onClick={this.onLoadMore} />)}
-             <ToastContainer autoClose={4000} theme={'colored'} />
-        </div>)
-        }
+        <Searchbar onSubmit={handelFormSubmit} />
+        {images.length !== 0 && (
+        <ImageGallery images={images} toggleModal={toggleModal} modalImageLoad={getBigImageModal} />
+        )}
+        {loading && <Loader/>}
+        {visibleButton && <Button onClick={handleLoadMore} />}
+        {showModal && <Modal onClick={toggleModal} image={bigImage} />}
+        <ToastContainer autoClose={'3000'} theme={'colored'}/>
       </>
      );
-  }
 };
