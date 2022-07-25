@@ -17,7 +17,7 @@ const handleSubmit = e =>{
         return;
     }else{
       onSubmit(searchQuery)
-      setSearchQuery('')
+      
     }
 
 }

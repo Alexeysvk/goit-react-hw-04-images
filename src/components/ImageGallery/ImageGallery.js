@@ -19,8 +19,11 @@ function ImageGallery({ toggleModal, images, modalImageLoad }) {
 }
 
 ImageGallery.propTypes = {
-  id: PropTypes.number,
-  images: PropTypes.array,
+  images: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.number.isRequired,
+    })
+  ).isRequired,
   toggleModal: PropTypes.func.isRequired,
 };
 

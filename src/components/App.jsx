@@ -50,6 +50,7 @@ useEffect(()=>{
   })
   .catch(error => toast.error('Ooops, something went wrong'))
   .finally(()=> setLoading(false));
+// eslint-disable-next-line react-hooks/exhaustive-deps
 }, [searchQuery, page])
 
 const toggleModal= () =>{

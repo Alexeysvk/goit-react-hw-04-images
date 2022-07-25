@@ -4,21 +4,22 @@ import PropTypes from 'prop-types';
 
 const modalRoot = document.querySelector('#modal-root');
 
-export default function Modal ({ image, tags, onClickModal, webformatURL }){
+export default function Modal ({ image, onClick }){
 useEffect(()=>{
+  const handleKeyDown = e => {
+    if (e.code === 'Escape') {
+      onClick();
+    }
+  }
+
   window.addEventListener('keydown', handleKeyDown);
   return () =>{window.removeEventListener('keydown', handleKeyDown)}
-}, [])
+}, [onClick])
 
-const handleKeyDown = e => {
-    if (e.code === 'Escape') {
-      onClickModal();
-    }
-  };
 
 const handleBackdropClick = e => {
     if (e.currentTarget === e.target) {
-     onClickModal();
+     onClick();
     }
   };
 
@@ -34,7 +35,6 @@ return createPortal(
 }
 
 Modal.propTypes = {
-  largeImageURL: PropTypes.string,
-  alt: PropTypes.string,
-  onClick: PropTypes.func, 
+  image:PropTypes.string.isRequired,
+  onClick: PropTypes.func.isRequired, 
 };
